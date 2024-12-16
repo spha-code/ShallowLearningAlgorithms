@@ -1,0 +1,60 @@
+# Linear Regression Algorithm
+import numpy as np  # Import NumPy for numerical operations
+import random  # Import random for generating random numbers
+import matplotlib.pyplot as plt  # Import matplotlib for plotting graphs
+
+# Generate random data points for X and y
+X, y = [], []  # Empty lists to store X and y values
+for _ in range(25):  # Loop to generate 25 data points
+    X.append(random.randint(0, 150))  # Random x values between 0 and 150
+    y.append(random.randint(0, 100))  # Random y values between 0 and 100
+
+X = np.array(X).reshape(-1, 1)  # Convert X to a numpy array of as many rows as needed and one column
+y = np.array(y)  # Convert y to a numpy array
+
+X.sort(axis=0)  # Sort the data for better visualization
+y.sort()  # Sort y values in ascending order (for better plotting)
+
+# Split the data into training and testing sets
+train_size = int(0.8 * len(X))  # train_size = 20 / 0.8*25 data points
+indices = np.random.permutation(len(X))  # Random numbers from 0 to 24 in random order
+train_indices = indices[:train_size]  # Indices[:20] first 20
+test_indices = indices[20:]  # Indices[20:] last 5
+
+x_train = X[train_indices]  # Select the training X values
+y_train = y[train_indices]  # Select the training y values
+x_test = X[test_indices]  # Select the test X values
+y_test = y[test_indices]  # Select the test y values
+
+n_samples, n_features = x_train.shape[0], x_train.shape[1]   #n_samples:Number of rows in X (data points):25 n_features:Number of columns in X (features):1
+weights = np.zeros(n_features)  # Initialize weights (coefficients) to zeros
+bias = 0  # Initialize bias term to 0
+epochs=20
+lr= 0.0001
+
+for _ in range(epochs):  # Loop through the number of epochs (iterations)
+  y_pred = np.dot(x_train, weights) + bias  # Compute predicted y values using current weights and bias
+  dw = (1 / train_size) * np.dot(x_train.T, ((np.dot(x_train, weights) + bias) - y_train))  #This calculates the partial DERIVATIVE of the loss function with respect to the weights (dw).
+  db = (1 / train_size) * np.sum((np.dot(x_train, weights) + bias) - y_train)  #This calculates the partial DERIVATIVE of the loss function with respect to the bias (db).
+
+  weights = weights - lr * dw  # Update weights - This step moves the weights in the direction that reduces the loss.
+  bias = bias - lr * db  # Update bias - This ensures the bias term is optimized along with the weights.
+
+print(f'weights: {[f"{w:.2f}" for w in weights]} bias: {bias:.4f}')
+
+error = np.mean(((y_test - (np.dot(x_test, weights) + bias))) ** 2) # Calculate MSE for the predictions and the true test values
+print("Mean Squared Error:", error)  # Print the Mean Squared Error
+
+sorted_indices = np.argsort(x_test.flatten())  # Get the indices that would sort x_test in ascending order
+x_test_sorted = x_test[sorted_indices]  # Sort x_test based on the sorted indices
+predictions_sorted = (np.dot(x_test, weights) + bias)[sorted_indices]  # Sort predictions based on the sorted indices
+
+#plt#
+plt.scatter(x_train, y_train, color='blue', label='Train Data')  # Plotting the data and the regression line in blue
+plt.scatter(x_test, y_test, color='red', label='Test Data')  # Plot test data points in red
+plt.plot(x_test_sorted, predictions_sorted, color='green', linewidth=2, label='Regression Line')  # Plot the regression line in green over the sorted test set
+plt.xlabel("X Values")  # Set x-axis label
+plt.ylabel("Y Values")  # Set y-axis label
+plt.title("Linear Regression Data")  # Set the title of the plot
+plt.legend()  # Display the legend for the plot
+plt.show()  # Show the plot
