@@ -1,0 +1,72 @@
+#KNN (K-Nearest Neighbors) Algorithm#
+import random
+import matplotlib.pyplot as plt
+import pandas as pd
+import numpy as np
+
+x1, y1, x2, y2, x3, y3 = [], [], [], [], [], []
+
+for _ in range(50):
+    x1.append(random.randint(0, 60))
+    y1.append(random.randint(0, 80))
+    x2.append(random.randint(50, 99))
+    y2.append(random.randint(40, 120))
+    x3.append(random.randint(90, 149))
+    y3.append(random.randint(70, 149))
+
+plt.scatter(x1, y1, color='orange', label='Orange Group')
+plt.scatter(x2, y2, color='green', label='Green Group')
+plt.scatter(x3, y3, color='purple', label='Purple Group')
+plt.xlabel("X Values")
+plt.ylabel("Y Values")
+plt.title("Color Groups Scatter Plot")
+plt.show()
+
+ALL_data = pd.DataFrame({
+    'x': x1 + x2 + x3,
+    'y': y1 + y2 + y3,
+    'Color': ['Orange Group'] * 50 + ['Green Group'] * 50 + ['Purple Group'] * 50
+})
+
+print("\nThe first 5 rows of the entire dataset with points and three Color Groups:")
+print(ALL_data.head(5))
+
+train_data = ALL_data.sample(frac=0.8)  # Select 80% of the data for TRAINING
+X_train_data = train_data.iloc[:, :2]   #120 training POINTS
+Y_train_labels = train_data.iloc[:, 2:]   #120 training LABELS
+
+test_data = ALL_data.drop(train_data.index)   # Select remaining 20% of the data for TESTING
+X_test_data = test_data.iloc[:, :2]   #The test dataset POINTS
+Y_test_labels = test_data.iloc[:, 2:]   #The test dataset LABELS
+
+X_train_data = X_train_data.values       # Convert Pandas DataFrame to Numpy Array
+Y_train_labels = Y_train_labels.values.ravel()  # Flatten the labels to 1D
+X_test_data = X_test_data.values          # Convert test data to Numpy Array
+
+def euclidean_distance(point1, point2):
+    return np.sqrt(np.sum((point1 - point2) ** 2))
+
+KNN = 5   # Number of neighbors to consider
+
+prediction_of_Y_test_label = []     # Creates an empty list
+loop_count =0
+sum_accuracy = 0.0
+for SINGLE_x in X_test_data:  # Loop 30 times through each of 30 X_test_data
+  loop_count +=1
+  distances = [euclidean_distance(SINGLE_x, datapoints) for datapoints in X_train_data]   #For a SINGLE_x computes 120 distances
+  k_sorted_indices = np.argsort(distances)[:KNN]    # NKK (number) Indices of distances for a SINGLE_x.
+  k_nearest_labels = [Y_train_labels[i] for i in k_sorted_indices]    # Retrieve the labels (colors) of these indices
+  print(f'\n{loop_count}\nThe closest points indices to point {SINGLE_x} are {k_sorted_indices} and belong to the: {k_nearest_labels} resepectively.')
+
+  label_counts = {}  # label_counts Dictionary (items color and number)
+  for label in k_nearest_labels:  # k_nearest_labels is color labels
+      label_counts[label] = label_counts.get(label, 0) + 1
+  most_common = max(label_counts.items(), key=lambda x: x[1])
+
+  prediction_of_Y_test_label.append(most_common[0])        # Append the predicted label to the predictions list
+  accuracy = most_common[1] / KNN * 100
+  print(f'The predicted label for this point {SINGLE_x} is the {most_common[0]} with {most_common[1]} out of {KNN} labels and {accuracy} accuracy.')
+  sum_accuracy += accuracy
+# Calculate accuracy
+GeneralAccuracy = sum_accuracy/len(Y_test_labels)
+print(f'\nGeneral Prediction Accuracy of the KNN Algorithm: {GeneralAccuracy:.2f}%')
