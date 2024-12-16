@@ -33,7 +33,7 @@ epochs=20
 lr= 0.0001
 
 for _ in range(epochs):  # Loop through the number of epochs (iterations)
-  y_pred = np.dot(x_train, weights) + bias  # Compute predicted y values using current weights and bias
+
   dw = (1 / train_size) * np.dot(x_train.T, ((np.dot(x_train, weights) + bias) - y_train))  #This calculates the partial DERIVATIVE of the loss function with respect to the weights (dw).
   db = (1 / train_size) * np.sum((np.dot(x_train, weights) + bias) - y_train)  #This calculates the partial DERIVATIVE of the loss function with respect to the bias (db).
 
