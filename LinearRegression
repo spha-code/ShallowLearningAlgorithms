@@ -42,7 +42,7 @@ for _ in range(epochs):  # Loop through the number of epochs (iterations)
 
 print(f'weights: {[f"{w:.2f}" for w in weights]} bias: {bias:.4f}')
 
-error = np.mean(((y_test - (np.dot(x_test, weights) + bias))) ** 2) # Calculate MSE for the predictions and the true test values
+error = np.mean(((y_test - (np.dot(x_test, weights) + bias))) ** 2) # Calculate MSE for the predictions and the true test values - LOSS FUNCTION
 print("Mean Squared Error:", error)  # Print the Mean Squared Error
 
 sorted_indices = np.argsort(x_test.flatten())  # Get the indices that would sort x_test in ascending order
