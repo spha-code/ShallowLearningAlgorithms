@@ -1,0 +1,334 @@
+# Decision Tree Classifier for the Iris Dataset
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn import datasets  # Scikit-learn provides the Iris dataset and tools
+from sklearn.model_selection import train_test_split  # To split data into training and testing sets
+from sklearn.metrics import accuracy_score  # To measure how accurate our model is
+
+# Load the Iris dataset
+# The Iris dataset contains measurements of flowers and their species (3 types)
+iris = datasets.load_iris()
+
+# Create a DataFrame (like a table) to organize the data
+# We name the columns based on the features: sepal length, sepal width, petal length, petal width
+col_names = ['sepal_length', 'sepal_width', 'petal_length', 'petal_width']
+iris_df = pd.DataFrame(data=iris.data, columns=col_names)  # Create DataFrame from Iris data
+iris_df['target'] = iris.target  # Add a column for the species (target variable: 0, 1, or 2)
+
+# Print the first 10 rows of the DataFrame to see what the data looks like
+print(iris_df.head(10))
+
+# Create a scatter plot to visualize the data
+# We plot sepal length (x-axis) vs. sepal width (y-axis), colored by species
+
+_ , ax = plt.subplots()  # Create a new plot, _ is a placeholder for the figure object, which isn't used here. ax is the axis object you'll use for plotting.
+scatter = ax.scatter(iris.data[:, 0], iris.data[:, 1], c=iris.target)  # Plot data points
+
+#iris.data[:, 0]: Selects all rows of the first feature (column 0) of the Iris dataset (sepal length).
+#iris.data[:, 1]: Selects all rows of the second feature (column 1) of the Iris dataset (sepal width).
+#c=iris.target: Colors the points based on the Iris target labels (species classes, e.g., 0, 1, 2 for setosa, versicolor, virginica).
+#c parameter specifies the color of the points in a scatter plot.
+
+ax.set(xlabel=iris.feature_names[0], ylabel=iris.feature_names[1])  # Label axes
+
+#xlabel=iris.feature_names[0]: Sets the x-axis label to the name of the first feature in the Iris dataset ("sepal length (cm)")
+#ylabel=iris.feature_names[1]: Sets the y-axis label to the name of the second feature in the Iris dataset ("sepal width (cm)")
+
+ax.legend(scatter.legend_elements()[0], iris.target_names, loc="lower right", title="Classes")  # Add a legend to show species names
+plt.show()  # Display the plot
+
+#The Node class represents a node in a decision tree, which can be either a decision(split) node or a leaf(end) node.
+
+class Node:
+    def __init__(self, feature_index=None, threshold=None, left=None, right=None, info_gain=None, value=None):
+        self.feature_index = feature_index
+        self.threshold = threshold
+        self.left = left
+        self.right = right
+        self.info_gain = info_gain
+        self.value = value
+
+#feature_index: Specifies the feature (e.g., sepal length) used for splitting at this node. None for leaf nodes.
+#threshold: The value used to split the feature (e.g., sepal length <= 5.0). None for leaf nodes.
+#left: Reference to the left child node (data points where feature <= threshold). None for leaf nodes.
+#right: Reference to the right child node (data points where feature > threshold). None for leaf nodes.
+#info_gain: Measures the quality of the split (higher indicates a better split). None for leaf nodes.It helps evaluate the effectiveness of splits during tree construction.
+#value: The predicted class (the final answer (class)) (e.g., species 0, 1, or 2) if the node is a leaf. None for decision nodes.
+
+# Define the DecisionTreeClassifier class to build and use the decision tree
+class DecisionTreeClassifier:
+    def __init__(self, min_samples_split=2, max_depth=4):
+        self.root = None         # root: The top node of the tree (starts as None)
+        self.min_samples_split = min_samples_split        # min_samples_split=2 - Minimum number of data points needed to split a node
+        self.max_depth = max_depth        # max_depth: Maximum number of levels in the tree (to avoid overly complex trees)
+
+    # Function to build the decision tree recursively
+    def build_tree(self, dataset, curr_depth=0):
+
+        # The dataset is a 2D array (likely a NumPy array) where each row represents a data point, and each column represents either a feature or the target variable. The code splits the dataset into:
+        #X: Features (all columns except the last one, e.g., measurements like sepal length in the Iris dataset).
+        #Y: Target variable (the last column, e.g., the species in the Iris dataset).
+
+        # Split dataset into features (X) and target (Y)
+        # X: All columns except the last one (features like sepal length)
+        # Y: The last column (target, i.e., species)
+
+        #curr_depth is a parameter that tracks the current depth of the tree during the recursive construction of a decision tree.
+        #In a decision tree, the depth refers to how many levels of splits (or nodes) have been created from the root node to the current node.
+        #The root node is at depth 0. Each time the dataset is split into child nodes, the depth increases by 1 for those children.
+
+        X, Y = dataset[:, :-1], dataset[:, -1]
+        num_samples, num_features = np.shape(X)  # Get number of rows and features of X
+
+        #num_samples (rows), num_features (columns) = np.shape(X) is used to extract the dimensions of the feature matrix X.
+        #np.shape is a NumPy function (or property) that returns the shape of a NumPy array as a tuple.
+
+        #For a 2D array like X, the shape is a tuple of the form (rows, columns).
+        #rows: The number of data points (samples) in the dataset.
+        #columns: The number of features for each data point.
+
+        # Only split if we have enough samples and haven't gone too deep
+        if num_samples >= self.min_samples_split and curr_depth <= self.max_depth:
+            # Find the best way to split the data (best feature and threshold)
+            best_split = self.get_best_split(dataset, num_samples, num_features)
+            #Identifies the optimal feature and threshold to split the dataset, maximizing a criterion like information gain.
+            #A method (not shown) that evaluates possible splits across all features and thresholds to
+            #find the one that best separates the data (e.g., maximizes information gain or minimizes Gini impurity).
+
+            #Check if the split is useful (info_gain > 0 and split exists)
+            #Retrieves the 'info_gain' key from best_split, returning -1 if it’s missing (e.g., if no valid split was found).
+            if best_split.get('info_gain', -1) > 0:
+            # If info_gain = a positive value, proceed to build subtrees. If info_gain = -1 (no valid split), skip to creating a leaf node.
+                # Build left and right subtrees recursively
+                left_subtree = self.build_tree(best_split['dataset_left'], curr_depth + 1)
+                right_subtree = self.build_tree(best_split['dataset_right'], curr_depth + 1)
+
+                #best_split['dataset_left']: Subset of the dataset where the feature value is ≤ threshold.
+                #best_split['dataset_right']: Subset where the feature value is > threshold.
+                #curr_depth + 1: Increments the depth for the child nodes, as they are one level deeper than the current node.
+                #self.build_tree: Recursive call to the same method, processing the left and right subsets.
+
+                # Creates a decision node representing the current split
+
+                return Node(
+                    best_split['feature_index'],
+                    best_split['threshold'],
+                    left_subtree,
+                    right_subtree,
+                    best_split['info_gain']
+                )
+
+                #Node: A class representing a node in the decision tree.
+                #best_split['feature_index']: The feature used for the split (e.g., 2 for petal length).
+                #best_split['threshold']: The threshold value for the split (e.g., 2.5).
+                #left_subtree: The left child node (result of recursive call).
+                #right_subtree: The right child node (result of recursive call).
+                #best_split['info_gain']: Stored for reference (e.g., for pruning or analysis).
+                #Returns a Node object that encapsulates the split details and pointers to its child subtrees.
+                #This node is part of the tree structure, used during prediction to route data points based on the feature and threshold.
+                #A node might represent “If petal length ≤ 2.5, go to left_subtree; else, go to right_subtree.”
+
+
+
+        # If we can't split, create a leaf node
+        # The leaf's value is the most common class in Y
+        leaf_value = self.calculate_leaf_value(Y)
+        return Node(value=leaf_value)
+
+    # Function to find the best feature and threshold to split the data
+    def get_best_split(self, dataset, num_samples, num_features):
+
+        # The dataset is a 2D array (likely a NumPy array) where each row represents a data point, and each column represents either a feature or the target variable.
+        #num_samples (rows), num_features (columns) is used to extract the dimensions of the feature matrix X.
+
+        # Initialize a dictionary to store the best split details
+        best_split = {}
+
+        # Initialize max info gain to a very low number
+        max_info_gain = -float("inf")
+
+        # Try each feature (e.g., sepal length, petal width)
+
+        #iterating through features in a dataset to evaluate possible thresholds for splitting.
+        for feature_index in range(num_features): #num_features (columns)
+            # Get all unique values for this feature,
+            feature_values = dataset[:, feature_index]
+            #retrieves all values for the current feature (column)
+            #rows are samples and columns are features.
+            possible_thresholds = np.unique(feature_values)
+
+            #finds all unique values for the current feature,
+            #which are used as possible_thresholds for splitting
+
+            # Try each unique value as a threshold
+            for threshold in possible_thresholds:
+                # Split data into left (<= threshold) and right (> threshold)
+                dataset_left, dataset_right = self.split(dataset, feature_index, threshold)
+
+                # Only proceed if both splits have data.
+                #left and right child nodes resulting from a split contain at least one data point.
+
+
+                if len(dataset_left) > 0 and len(dataset_right) > 0:
+                    # Get target values for parent and children
+                    y = dataset[:, -1]  # Parent node targets
+                    left_y = dataset_left[:, -1]  # Left child targets
+                    right_y = dataset_right[:, -1]  # Right child targets
+                    # Calculate how good this split is using Gini index
+                    #Calls a method information_gain to compute the quality of the split
+                    #using the Gini index. The information gain is typically calculated
+                    #as the reduction in impurity (e.g., Gini index) from the parent node
+                    #to the child nodes.
+
+                    curr_info_gain = self.information_gain(y, left_y, right_y, "gini")
+
+                    #Information Gain = Gini(parent) - [Weighted average of Gini(left) + Gini(right)]
+                    #Gini impurity index - measuring the diversity of a dataset.
+                    #The string "gini" specifies the impurity criterion to use for calculating information gain.
+                    #The lower the Gini index the more pure the dataset
+
+                    #( n ) is the set of samples in the node.
+                    #( k ) is the number of classes.
+                    #pip_ip_i is the proportion of samples belonging to class ( i ).
+
+
+                    # If this split is better than previous ones, save it
+                    if curr_info_gain > max_info_gain:
+                        best_split = {
+                            "feature_index": feature_index,
+                            "threshold": threshold,
+                            "dataset_left": dataset_left,
+                            "dataset_right": dataset_right,
+                            "info_gain": curr_info_gain
+                        }
+                        max_info_gain = curr_info_gain
+
+        # Return the best split we found (or empty if no valid splits)
+        return best_split
+
+#TILL HERE
+
+    # Function to split data based on a feature and threshold
+    def split(self, dataset, feature_index, threshold): #feature_index: The index of the feature (column) to split on.
+    #From code above: feature_index in range(num_features): #num_features (columns)
+
+        # Create left split: rows where feature <= threshold
+        dataset_left = np.array([row for row in dataset if row[feature_index] <= threshold])
+        # Create right split: rows where feature > threshold
+        dataset_right = np.array([row for row in dataset if row[feature_index] > threshold])
+        return dataset_left, dataset_right
+
+    # Function to calculate information gain (how good a split is)
+    def information_gain(self, parent, l_child, r_child, mode="entropy"):
+        # Calculate weights (proportions) of left and right children
+        weight_l = len(l_child) / len(parent)
+        weight_r = len(r_child) / len(parent)
+
+        # Use Gini index (simpler measure of impurity)
+        if mode == "gini":
+            # Gain = parent's impurity - weighted average of children's impurities
+            gain = self.gini_index(parent) - (weight_l * self.gini_index(l_child) + weight_r * self.gini_index(r_child))
+        else:
+            # Use entropy (another measure of impurity)
+            gain = self.entropy(parent) - (weight_l * self.entropy(l_child) + weight_r * self.entropy(r_child))
+        return gain
+
+    # Function to calculate entropy (measure of randomness in data)
+    def entropy(self, y):
+        # Get unique classes (e.g., [0, 1, 2] for Iris species)
+        class_labels = np.unique(y)
+        entropy = 0
+        # Calculate entropy: sum(-p * log2(p)) for each class
+        for cls in class_labels:
+            p_cls59 = len(y[y == cls]) / len(y)  # Proportion of this class
+            entropy += -p_cls * np.log2(p_cls)
+        return entropy
+
+    # Function to calculate Gini index (measure of impurity)
+    def gini_index(self, y):
+        # Get unique classes
+        class_labels = np.unique(y)
+        gini = 0
+        # Calculate Gini: 1 - sum(p^2) for each class
+        for cls in class_labels:
+            p_cls = len(y[y == cls]) / len(y)  # Proportion of this class
+            gini += p_cls ** 2
+        return 1 - gini
+
+    # Function to determine the value of a leaf node
+    def calculate_leaf_value(self, Y):
+        # Convert Y to a list and find the most common class
+        Y = list(Y)
+        return max(Y, key=Y.count)
+
+    # Function to print the decision tree in a readable way
+    def print_tree(self, tree=None, indent=" "):
+        # Start with the root if no tree is specified
+        if not tree:
+            tree = self.root
+
+        # If this is a leaf node, print its value (class)
+        if tree.value is not None:
+            print(tree.value)
+        else:
+            # Print the decision rule (e.g., "X_0 <= 5.0 ? info_gain: 0.4")
+            print(f"X_{tree.feature_index} <= {tree.threshold} ? info_gain: {tree.info_gain}")
+            # Print left branch
+            print(f"{indent}left:", end="")
+            self.print_tree(tree.left, indent + indent)
+            # Print right branch
+            print(f"{indent}right:", end="")
+            self.print_tree(tree.right, indent + indent)
+
+    # Function to train the decision tree
+    def fit(self, X, Y):
+        # Combine features (X) and target (Y) into one dataset
+        dataset = np.concatenate((X, Y), axis=1)
+        # Build the tree starting from the root
+        self.root = self.build_tree(dataset)
+
+    # Function to predict classes for new data
+    def predict(self, X):
+        # Make a prediction for each data point
+        predictions = [self.make_prediction(x, self.root) for x in X]
+        return predictions
+
+    # Function to predict the class for a single data point
+    def make_prediction(self, x, tree):
+        # If we're at a leaf node, return its value
+        if tree.value is not None:
+            return tree.value
+        # Get the feature value for this data point
+        feature_val = x[tree.feature_index]
+        # Go left if feature value <= threshold, else go right
+        if feature_val <= tree.threshold:
+            return self.make_prediction(x, tree.left)
+        else:
+            return self.make_prediction(x, tree.right)
+
+# Prepare the data for training
+# X: Features (sepal length, sepal width, etc.)
+# Y: Target (species)
+X = iris_df.iloc[:, :-1].values  # All columns except the last one
+Y = iris_df.iloc[:, -1].values.reshape(-1, 1)  # Last column, reshaped to 2D array
+
+# Split data into training (80%) and testing (20%) sets
+X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2, random_state=41)
+
+# Create and train the decision tree
+# min_samples_split=3: Need at least 3 samples to split
+# max_depth=3: Tree can have up to 3 levels
+classifier = DecisionTreeClassifier(min_samples_split=3, max_depth=3)
+classifier.fit(X_train, Y_train)  # Train the model
+
+# Print the decision tree to see how it makes decisions
+classifier.print_tree()
+
+# Make predictions on the test set
+Y_pred = classifier.predict(X_test)
+
+# Calculate and print the accuracy (how many predictions were correct)
+accuracy = accuracy_score(Y_test, Y_pred)
+print(f"Accuracy: {accuracy}")
